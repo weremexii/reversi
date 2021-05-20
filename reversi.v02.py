@@ -7,16 +7,16 @@ class Board:
         self.white = 2
         self.avail = 3
         self.name = {self.white: 'white', self.black: 'black', self.empty: 'empty', self.avail: 'avail'}
-        self.piece = dict([(self.empty, "+"), (self.black, "●"), (self.white, "○"), (self.avail, "#")])
+        self.piece = dict([(self.empty, " "), (self.black, "●"), (self.white, "○"), (self.avail, "+")])
         self.board = np.array([
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 2, 2, 2, 0],
-       [1, 0, 0, 1, 1, 2, 1, 0],
-       [2, 2, 2, 2, 1, 2, 2, 0],
-       [0, 1, 1, 0, 0, 1, 0, 2],
-       [0, 1, 0, 0, 0, 0, 1, 0],
-       [0, 1, 0, 0, 0, 0, 0, 0]])
+       [0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 1, 2, 0, 0, 0],
+       [0, 0, 0, 2, 1, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0]])
         self.player = 1
         self.action = {}
         self._history = []
@@ -127,7 +127,8 @@ class Board:
                     d_action[action] = set(reversi)
             
             self.action = d_action
-            self.display(mode='action')
+            #self.display(mode='action')
+            self.display(mode='info', message=['现在是{}'.format(self.piece[self.player])])
 
     def do_action(self):
         # Input
@@ -159,11 +160,12 @@ class Board:
             #empty_unit = self.piece[0]
             #balck_unit = self.piece[1]
             #white_unit = self.piece[2]
-            board = self.board
-            #for action in self.action.keys():
-            #    action = eval(action)
-            #    x, y = action
-            #    board[x][y] = 3
+            board = self.board.copy()
+            keys  = list(self.action.keys())
+            for action in self.action.keys():
+                action = eval(action)
+                x, y = action
+                board[x][y] = 3
             # abcdef
             print("--" * 9)
             row_str = "{:<2}" * 8
