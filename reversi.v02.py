@@ -5,16 +5,18 @@ class Board:
         self.empty = 0
         self.black = 1
         self.white = 2
-        self.name = {self.white: 'white', self.black: 'black', self.empty: 'empty'}
-        self.piece = dict([(self.empty, "+"), (self.black, "●"), (self.white, "○")])
-        self.board = np.array([[0, 0, 0, 0, 0, 0, 0, 0],
+        self.avail = 3
+        self.name = {self.white: 'white', self.black: 'black', self.empty: 'empty', self.avail: 'avail'}
+        self.piece = dict([(self.empty, "+"), (self.black, "●"), (self.white, "○"), (self.avail, "#")])
+        self.board = np.array([
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 1, 2, 0, 0, 0],
-       [0, 0, 0, 2, 1, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0]])
+       [0, 0, 0, 0, 2, 2, 2, 0],
+       [1, 0, 0, 1, 1, 2, 1, 0],
+       [2, 2, 2, 2, 1, 2, 2, 0],
+       [0, 1, 1, 0, 0, 1, 0, 2],
+       [0, 1, 0, 0, 0, 0, 1, 0],
+       [0, 1, 0, 0, 0, 0, 0, 0]])
         self.player = 1
         self.action = {}
         self._history = []
@@ -39,6 +41,8 @@ class Board:
         while(status):
             try:
                 x, y = x+dx, y+dy
+                if x < 0 or y < 0:
+                    raise Exception
                 temp = board[x][y]
                 r.append(((x, y), temp))
             except Exception:
@@ -88,10 +92,14 @@ class Board:
             origin_action.extend(self._available_action(self._position_generator((x, y), (-1, 1)), player))
 
         # for zheng
-        origin_action.extend(self._available_action([((i, j), board[(i, j)]) for i in range(8) for j in range(8)], player)) #right
-        origin_action.extend(self._available_action([((i, j), board[(i, j)]) for i in range(8) for j in reversed(range(8))], player)) #left
-        origin_action.extend(self._available_action([((j, i), board[(j, i)]) for i in range(8) for j in range(8)], player)) #down
-        origin_action.extend(self._available_action([((j, i), board[(j, i)]) for i in range(8) for j in reversed(range(8))], player))
+        for i in range(8):
+            origin_action.extend(self._available_action([((i, j), board[(i, j)]) for j in range(8)], player))
+        for i in range(8):
+            origin_action.extend(self._available_action([((i, j), board[(i, j)]) for j in reversed(range(8))], player))
+        for i in range(8):
+            origin_action.extend(self._available_action([((j, i), board[(j, i)]) for j in range(8)], player))
+        for i in range(8):
+            origin_action.extend(self._available_action([((j, i), board[(j, i)]) for j in reversed(range(8))], player))
 
         # make a decision about next player
         if len(origin_action) == 0:
@@ -152,6 +160,10 @@ class Board:
             #balck_unit = self.piece[1]
             #white_unit = self.piece[2]
             board = self.board
+            #for action in self.action.keys():
+            #    action = eval(action)
+            #    x, y = action
+            #    board[x][y] = 3
             # abcdef
             print("--" * 9)
             row_str = "{:<2}" * 8
@@ -173,6 +185,6 @@ class Board:
 if __name__ == '__main__':
     board = Board()
     while(True):
-        board.display()
         board.next_stage()
+        board.display()
         board.do_action()
