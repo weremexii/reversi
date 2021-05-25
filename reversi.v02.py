@@ -88,12 +88,14 @@ class Board:
         if rate[self.black] + rate[self.white] == 64:
             if rate[self.black] == rate[self.white]:
                 if self.displayer:
+                    self.displayer.display()
                     self.displayer.display(mode='info', message=['Both you win and both you lose.'])
                 return None
             else:
                 winner = self.black if rate[self.black] > rate[self.white] else self.white
                 if self.displayer:
-                    self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner])])
+                    self.displayer.display()
+                    self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner]), '比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 return True
         else:
             return False
@@ -182,7 +184,7 @@ class Board:
         board[x][y] = player
         self._record(add_piece=(x, y))
         # empty action for correct display of pass-situation
-        self.action = []
+        self.action = {}
         
         status = self._success()
         if status:
@@ -237,11 +239,11 @@ class Numb_Player:
         self.standfor = player
     def do_action(self, board: Board):
         available_action = list(board.action.keys())
-        select = available_action[0]
-        for str_action in available_action:
-            if len(board.action[str_action]) > len(board.action[select]):
-                select = str_action
-        return board.do_action(select)
+        if len(available_action) != 0:
+            action_len_sort = sorted(range(len(available_action)), key=lambda i: len(board.action[available_action[i]]))
+            select = available_action[action_len_sort[-1]]
+        
+            return board.do_action(select)
 
 if __name__ == '__main__':
 
