@@ -1,6 +1,4 @@
-from os import stat
 import numpy as np
-from numpy.lib.function_base import select
 
 class Board:
     def __init__(self) -> None:
@@ -9,7 +7,6 @@ class Board:
         self.white = 2
         self.avail = 3 # a status won't be stored
         self.name = {self.white: 'white', self.black: 'black', self.empty: 'empty', self.avail: 'avail'}
-        self.piece = dict([(self.empty, " "), (self.black, "●"), (self.white, "○"), (self.avail, "+")])
         self.board = np.array([
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
@@ -23,6 +20,8 @@ class Board:
         self.action = {}
         self._history = []
 
+        # gui
+        self.displayer = None
         # record
         self._record()
         self._success()
@@ -88,14 +87,19 @@ class Board:
         
         if rate[self.black] + rate[self.white] == 64:
             if rate[self.black] == rate[self.white]:
-                self.display(mode='info', message=['Both you win and both you lose.'])
+                if self.displayer:
+                    self.displayer.display(mode='info', message=['Both you win and both you lose.'])
                 return None
             else:
                 winner = self.black if rate[self.black] > rate[self.white] else self.white
-                self.display(mode='info', message=['Winner is {}'.format(self.name[winner])])
+                if self.displayer:
+                    self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner])])
                 return True
         else:
             return False
+    
+    def add_displayer(self, displayer):
+        self.displayer = displayer
 
     def next_stage(self):
         player = self.player
@@ -125,18 +129,19 @@ class Board:
         for i in range(8):
             origin_action.extend(self._available_action([((j, i), board[(j, i)]) for j in reversed(range(8))], player))
 
-        self.display(mode='info', message=['现在是{}'.format(self.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
-
         # make a decision about next player
         if len(origin_action) == 0:
-            # change player
-            player = 1 if player == 2 else 2
-            self.display(mode='info', message=[r'No available action, pass to', self.name[player]])
-            self.player = player
-
+            if self.displayer:
+                self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
+                self.displayer.display()
+                # change player
+                player = 1 if player == 2 else 2
+                self.displayer.display(mode='info', message=[r'No available action, pass to', self.name[player]])
+            else:
+                player = 1 if player == 2 else 2
             
+            self.player = player
             return self.player
-
         else:
             # wash actions
             # str_position: set of reversi positions
@@ -149,9 +154,10 @@ class Board:
                     d_action[action].update(reversi)
                 else:
                     d_action[action] = set(reversi)
-            
             self.action = d_action
-            #self.display(mode='action')
+            if self.displayer:
+                self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
+                self.displayer.display()
             return self.player
 
     def do_action(self, str_action: str=None):
@@ -160,7 +166,7 @@ class Board:
             str_action = '({}, {})'.format(*(input().split()))
             # to do: kill list
             while(str_action not in self.action.keys()):
-                self.display(mode='info', message=['Invalid action'])
+                self.displayer.display(mode='info', message=['Invalid action'])
                 str_action = '({}, {})'.format(*(input().split()))
         
         # for change
@@ -175,6 +181,8 @@ class Board:
         x, y = eval(str_action)
         board[x][y] = player
         self._record(add_piece=(x, y))
+        # empty action for correct display of pass-situation
+        self.action = []
         
         status = self._success()
         if status:
@@ -182,19 +190,26 @@ class Board:
         elif status == None:
             return 32
         elif status == False:
-            # for next stage
+            # for next stage change player
             self.player = 1 if player == 2 else 2
             return 0
     
+    
+
+class Displayer:
+    def __init__(self, board: Board, config: dict=None) -> None:
+        self.board_object = board
+        if not config:
+            self.piece = dict([(board.empty, " "), (board.black, "●"), (board.white, "○"), (board.avail, "+")])
+        else:
+            self.piece = dict([(board.empty, config['empty']), (board.black, config['black']), (board.white, config['white']), (board.avail, config['avail'])])
+
     def display(self, mode='board', message=[]):
         ''' 'board', 'info', 'action' '''
         if mode == 'board':
-            #empty_unit = self.piece[0]
-            #balck_unit = self.piece[1]
-            #white_unit = self.piece[2]
-            board = self.board.copy()
-            keys  = list(self.action.keys())
-            for action in self.action.keys():
+            board = self.board_object.board.copy()
+            keys  = list(self.board_object.action.keys())
+            for action in keys:
                 action = eval(action)
                 x, y = action
                 board[x][y] = 3
@@ -215,7 +230,7 @@ class Board:
                 print(m)
         if mode == 'action':
             print('Available Actions are')
-            print(','.join(self.action.keys()))
+            print(','.join(self.board_object.action.keys()))
 
 class Numb_Player:
     def __init__(self, player: int) -> None:
@@ -226,16 +241,22 @@ class Numb_Player:
         for str_action in available_action:
             if len(board.action[str_action]) > len(board.action[select]):
                 select = str_action
-        board.do_action(select)
+        return board.do_action(select)
 
 if __name__ == '__main__':
-    def do(board: Board):
-        board.do_action()
+
+    def human_do(board: Board):
+        return board.do_action()
+
     board = Board()
+    displayer = Displayer(board)
+    board.add_displayer(displayer)
     computer = Numb_Player(2)
-    player = {board.black: do, board.white: computer.do_action}
+    computer_b = Numb_Player(1)
+    player = {board.black: computer_b.do_action, board.white: computer.do_action}
+
+    # Game
     status = False
+    player[board.next_stage()](board)
     while(not status):
-        player[board.next_stage()](board)
-        board.display()
-        
+        status = player[board.next_stage()](board)
