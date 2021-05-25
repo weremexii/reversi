@@ -1,3 +1,4 @@
+from os import stat
 import numpy as np
 from numpy.lib.function_base import select
 
@@ -6,7 +7,7 @@ class Board:
         self.empty = 0
         self.black = 1
         self.white = 2
-        self.avail = 3
+        self.avail = 3 # a status won't be stored
         self.name = {self.white: 'white', self.black: 'black', self.empty: 'empty', self.avail: 'avail'}
         self.piece = dict([(self.empty, " "), (self.black, "●"), (self.white, "○"), (self.avail, "+")])
         self.board = np.array([
@@ -24,6 +25,7 @@ class Board:
 
         # record
         self._record()
+        self._success()
 
     def _record(self, add_piece=None):
         # Pay attention to mutable objects
@@ -73,6 +75,27 @@ class Board:
             # re-search
             search_r = re.search(pattern, pieces)
         return r
+    
+    def _success(self):
+        "Decide who wins and modify the current pieces rate"
+        self.rate = {self.black: 0, self.white: 0}
+        rate = self.rate
+        board = self.board
+        for x in range(8):
+            for y in range(8):
+                if board[x][y] != self.empty:
+                    rate[board[x][y]] += 1
+        
+        if rate[self.black] + rate[self.white] == 64:
+            if rate[self.black] == rate[self.white]:
+                self.display(mode='info', message=['Both you win and both you lose.'])
+                return None
+            else:
+                winner = self.black if rate[self.black] > rate[self.white] else self.white
+                self.display(mode='info', message=['Winner is {}'.format(self.name[winner])])
+                return True
+        else:
+            return False
 
     def next_stage(self):
         player = self.player
@@ -102,6 +125,8 @@ class Board:
         for i in range(8):
             origin_action.extend(self._available_action([((j, i), board[(j, i)]) for j in reversed(range(8))], player))
 
+        self.display(mode='info', message=['现在是{}'.format(self.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
+
         # make a decision about next player
         if len(origin_action) == 0:
             # change player
@@ -109,10 +134,8 @@ class Board:
             self.display(mode='info', message=[r'No available action, pass to', self.name[player]])
             self.player = player
 
-            # display board
-            self.display()
-            # calculate
-            self.next_stage()
+            
+            return self.player
 
         else:
             # wash actions
@@ -129,7 +152,7 @@ class Board:
             
             self.action = d_action
             #self.display(mode='action')
-            self.display(mode='info', message=['现在是{}'.format(self.piece[self.player])])
+            return self.player
 
     def do_action(self, str_action: str=None):
         # Input
@@ -153,8 +176,15 @@ class Board:
         board[x][y] = player
         self._record(add_piece=(x, y))
         
-        # for next stage
-        self.player = 1 if player == 2 else 2
+        status = self._success()
+        if status:
+            return 64
+        elif status == None:
+            return 32
+        elif status == False:
+            # for next stage
+            self.player = 1 if player == 2 else 2
+            return 0
     
     def display(self, mode='board', message=[]):
         ''' 'board', 'info', 'action' '''
@@ -199,13 +229,13 @@ class Numb_Player:
         board.do_action(select)
 
 if __name__ == '__main__':
-    board = Board()
-    player_1 = Numb_Player(2)
-    player_2 = Numb_Player(1)
-    while(True):
-        board.next_stage()
-        board.display()
+    def do(board: Board):
         board.do_action()
-        board.next_stage()
+    board = Board()
+    computer = Numb_Player(2)
+    player = {board.black: do, board.white: computer.do_action}
+    status = False
+    while(not status):
+        player[board.next_stage()](board)
         board.display()
-        player_1.do_action(board)
+        
