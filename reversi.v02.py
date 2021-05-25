@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.lib.function_base import select
 
 class Board:
     def __init__(self) -> None:
@@ -130,24 +131,25 @@ class Board:
             #self.display(mode='action')
             self.display(mode='info', message=['现在是{}'.format(self.piece[self.player])])
 
-    def do_action(self):
+    def do_action(self, str_action: str=None):
         # Input
-        action = '({}, {})'.format(*(input().split()))
-        # to do: kill list
-        while(action not in self.action.keys()):
-            self.display(mode='info', message=['Invalid action'])
-            action = '({}, {})'.format(*(input().split()))
+        if not str_action:
+            str_action = '({}, {})'.format(*(input().split()))
+            # to do: kill list
+            while(str_action not in self.action.keys()):
+                self.display(mode='info', message=['Invalid action'])
+                str_action = '({}, {})'.format(*(input().split()))
         
         # for change
         player = self.player
         board = self.board
-        reversi = self.action[action]
+        reversi = self.action[str_action]
         # reversi
         for position in reversi:
             x, y = position
             board[x][y] = player
         # put piece
-        x, y = eval(action)
+        x, y = eval(str_action)
         board[x][y] = player
         self._record(add_piece=(x, y))
         
@@ -184,9 +186,26 @@ class Board:
         if mode == 'action':
             print('Available Actions are')
             print(','.join(self.action.keys()))
+
+class Numb_Player:
+    def __init__(self, player: int) -> None:
+        self.standfor = player
+    def do_action(self, board: Board):
+        available_action = list(board.action.keys())
+        select = available_action[0]
+        for str_action in available_action:
+            if len(board.action[str_action]) > len(board.action[select]):
+                select = str_action
+        board.do_action(select)
+
 if __name__ == '__main__':
     board = Board()
+    player_1 = Numb_Player(2)
+    player_2 = Numb_Player(1)
     while(True):
         board.next_stage()
         board.display()
         board.do_action()
+        board.next_stage()
+        board.display()
+        player_1.do_action(board)
