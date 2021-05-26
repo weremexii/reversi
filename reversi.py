@@ -1,5 +1,5 @@
 import numpy as np
-
+from fake_mcts import Fake_mcts_player
 class Board:
     def __init__(self) -> None:
         self.empty = 0
@@ -253,9 +253,9 @@ if __name__ == '__main__':
     board = Board()
     displayer = Displayer(board)
     board.add_displayer(displayer)
-    computer = Numb_Player(2)
-    computer_b = Numb_Player(1)
-    player = {board.black: computer_b.do_action, board.white: computer.do_action}
+    computer = Numb_Player(1)
+    computer_fake = Numb_Player(2)
+    player = {board.black: computer.do_action, board.white: computer_fake.do_action}
 
     # Game
     status = False
