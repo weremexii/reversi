@@ -2,11 +2,13 @@ import numpy as np
 from fake_mcts import Fake_mcts_player
 class Board:
     def __init__(self, config: dict=None, history: bool=True, displayer=None) -> None:
+        # player init
         self.empty = 0
         self.black = 1
         self.white = 2
         self.avail = 3 # a status won't be stored
         self.name = {self.white: 'white', self.black: 'black', self.empty: 'empty', self.avail: 'avail'}
+        # game init
         self.board = np.array([
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
@@ -16,7 +18,7 @@ class Board:
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0]])
-        self.player = 1
+        self.player = self.black
         self.action = {}
         self._history = []
 
@@ -25,14 +27,17 @@ class Board:
         if displayer:
             self.displayer = displayer
             self.displayer.init(self)
-        # record
+        # empty opening
         self._no_avail = 0
         self._record()
         self.success()
+        # for next stage
+        self.next_stage()
 
     def _record(self, add_piece=None):
         # Pay attention to mutable objects
-        self._history.append(dict(player=self.player, 
+        self._history.append(dict(
+        player=self.player, 
         action=self.action.copy(), 
         add_piece=add_piece,
         board=self.board.copy()))
@@ -80,7 +85,11 @@ class Board:
         return r
     
     def success(self):
-        "Decide who wins and modify the current pieces rate"
+        '''
+        Decide who wins and modify the current pieces rate.
+        if some wins, return True and the player_id. player_id is None when it is a tie
+        else return False and None
+        '''
         self.rate = {self.black: 0, self.white: 0}
         rate = self.rate
         board = self.board
@@ -104,7 +113,8 @@ class Board:
         else:
             return False, None
     
-    def add_displayer(self, displayer):
+    def displayer_switch(self, displayer):
+        "None for off, a object for on"
         self.displayer = displayer
 
     def next_stage(self):
@@ -145,10 +155,12 @@ class Board:
                 self.displayer.display(mode='info', message=[r'No available action, pass to', self.name[player]])
             else:
                 player = 1 if player == 2 else 2
-            
+            # take effect
             self.player = player
             # no available action record
             self._no_avail += 1
+            # update rate
+            self.success()
             return self.player
         else:
             # wash actions
@@ -175,10 +187,11 @@ class Board:
             str_action = '({}, {})'.format(*(input().split()))
             # to do: kill list
             while(str_action not in self.action.keys()):
-                self.displayer.display(mode='info', message=['Invalid action'])
+                if self.displayer:
+                    self.displayer.display(mode='info', message=['Invalid action'])
                 str_action = '({}, {})'.format(*(input().split()))
         
-        # for change
+        # fetch data
         player = self.player
         board = self.board
         reversi = self.action[str_action]
@@ -193,19 +206,9 @@ class Board:
         # empty action for correct display of pass-situation
         self.action = {}
         
-        end, winner = self.success()
-        if end:
-            if winner != None:
-                return 64
-            else:
-                return 32
-        else:
-            # for next stage change player
-            self.player = 1 if player == 2 else 2
-            return 0
-
-    def generate_board_dict(self):
-        '''Return a dict contain "board", "player", "action", "rate"'''
+        # for next stage change player
+        self.player = 1 if player == 2 else 2
+        self.next_stage()
 
     
 
@@ -272,6 +275,8 @@ if __name__ == '__main__':
 
     # Game
     status = False
-    player[board.next_stage()](board)
+    player[board.player](board)
     while(not status):
-        status = player[board.next_stage()](board)
+        status, winner = board.success()
+        if not status:
+            player[board.player](board)
