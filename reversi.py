@@ -20,7 +20,9 @@ class Board:
        [0, 0, 0, 0, 0, 0, 0, 0]])
         self.player = self.black
         self.action = {}
-        self._history = []
+        self._history = None
+        if history:
+            self._history = []
 
         # gui
         self.displayer = None
@@ -36,11 +38,12 @@ class Board:
 
     def _record(self, add_piece=None):
         # Pay attention to mutable objects
-        self._history.append(dict(
-        player=self.player, 
-        action=self.action.copy(), 
-        add_piece=add_piece,
-        board=self.board.copy()))
+        if self._history:
+            self._history.append(dict(
+                player=self.player, 
+                action=self.action.copy(), 
+                add_piece=add_piece,
+                board=self.board.copy()))
 
     def _position_generator(self, start_p: tuple, direction: tuple) -> list:
         x, y = start_p
