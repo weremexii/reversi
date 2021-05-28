@@ -20,9 +20,9 @@ class Board:
        [0, 0, 0, 0, 0, 0, 0, 0]])
         self.player = self.black
         self.action = {}
-        self._history = None
+        self.history = None
         if history:
-            self._history = []
+            self.history = []
 
         # gui
         self.displayer = None
@@ -36,10 +36,10 @@ class Board:
         # for next stage
         self.next_stage()
 
-    def _record(self, add_piece=None):
+    def _record(self, add_piece: str=None):
         # Pay attention to mutable objects
-        if isinstance(self._history, list):
-            self._history.append(dict(
+        if isinstance(self.history, list):
+            self.history.append(dict(
                 player=self.player, 
                 action=self.action.copy(), 
                 add_piece=add_piece,
@@ -123,7 +123,7 @@ class Board:
         '''
         self.displayer = displayer
         if not history:
-            self._history = None
+            self.history = None
             
 
     def next_stage(self):
@@ -200,7 +200,8 @@ class Board:
                 if self.displayer:
                     self.displayer.display(mode='info', message=['Invalid action'])
                 str_action = '({}, {})'.format(*(input().split()))
-        
+        if len(self.action.keys()) == 0:
+            return
         # fetch data
         player = self.player
         board = self.board
@@ -212,7 +213,7 @@ class Board:
         # put piece
         x, y = eval(str_action)
         board[x][y] = player
-        self._record(add_piece=(x, y))
+        self._record(add_piece=str_action)
         # empty action for correct display of pass-situation
         self.action = {}
         
@@ -279,10 +280,9 @@ if __name__ == '__main__':
     def human_do(board: Board):
         return board.do_action()
 
-    board = Board(history=False, displayer=Displayer())
+    board = Board(displayer=Displayer())
     computer = Numb_Player(1)
-    computer_2 = Numb_Player(2)
-    player = {board.black: computer.do_action, board.white: computer_2.do_action}
+    player = {board.black: human_do, board.white: computer.do_action}
 
     # Game
     status = False
