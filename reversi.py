@@ -116,9 +116,15 @@ class Board:
         else:
             return False, None
     
-    def displayer_switch(self, displayer):
-        "None for off, a object for on"
+    def switch(self, displayer, history):
+        '''
+        For displayer, give a object(None is OK)
+        For history, False for off, True for on
+        '''
         self.displayer = displayer
+        if not history:
+            self._history = None
+            
 
     def next_stage(self):
         player = self.player
