@@ -32,13 +32,13 @@ class Board:
         # empty opening
         self._no_avail = 0
         self._record()
-        self.success()
+        self.end()
         # for next stage
         self.next_stage()
 
     def _record(self, add_piece=None):
         # Pay attention to mutable objects
-        if self._history:
+        if isinstance(self._history, list):
             self._history.append(dict(
                 player=self.player, 
                 action=self.action.copy(), 
@@ -87,7 +87,7 @@ class Board:
             search_r = re.search(pattern, pieces)
         return r
     
-    def success(self, silent=False):
+    def end(self, silent=False):
         '''
         Decide who wins and modify the current pieces rate.
         if some wins, return True and the player_id. player_id is None when it is a tie
@@ -168,8 +168,9 @@ class Board:
             self.player = player
             # no available action record
             self._no_avail += 1
+            self._record()
             # update rate
-            self.success(silent=True)
+            self.end(silent=True)
             return self.player
         else:
             # wash actions
@@ -278,7 +279,7 @@ if __name__ == '__main__':
     def human_do(board: Board):
         return board.do_action()
 
-    board = Board(displayer=Displayer())
+    board = Board(history=False, displayer=Displayer())
     computer = Numb_Player(1)
     computer_2 = Numb_Player(2)
     player = {board.black: computer.do_action, board.white: computer_2.do_action}
@@ -287,7 +288,6 @@ if __name__ == '__main__':
     status = False
     player[board.player](board)
     while(not status):
-        status, winner = board.success()
-        a = input()
+        status, winner = board.end()
         if not status:
             player[board.player](board)
