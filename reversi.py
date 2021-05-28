@@ -1,5 +1,6 @@
 import numpy as np
 from fake_mcts import Fake_mcts_player
+from mcts_pure import MCTSPlayer
 class Board:
     def __init__(self) -> None:
         self.empty = 0
@@ -11,8 +12,8 @@ class Board:
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 1, 2, 0, 0, 0],
        [0, 0, 0, 2, 1, 0, 0, 0],
+       [0, 0, 0, 1, 2, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0]])
@@ -23,8 +24,9 @@ class Board:
         # gui
         self.displayer = None
         # record
+        self._no_avail = 0
         self._record()
-        self._success()
+        self.success()
 
     def _record(self, add_piece=None):
         # Pay attention to mutable objects
@@ -75,7 +77,7 @@ class Board:
             search_r = re.search(pattern, pieces)
         return r
     
-    def _success(self):
+    def success(self):
         "Decide who wins and modify the current pieces rate"
         self.rate = {self.black: 0, self.white: 0}
         rate = self.rate
@@ -85,20 +87,20 @@ class Board:
                 if board[x][y] != self.empty:
                     rate[board[x][y]] += 1
         
-        if rate[self.black] + rate[self.white] == 64:
+        if (rate[self.black] + rate[self.white] == 64) or self._no_avail == 2:
             if rate[self.black] == rate[self.white]:
                 if self.displayer:
                     self.displayer.display()
                     self.displayer.display(mode='info', message=['Both you win and both you lose.'])
-                return None
+                return True, None
             else:
                 winner = self.black if rate[self.black] > rate[self.white] else self.white
                 if self.displayer:
                     self.displayer.display()
                     self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner]), '比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
-                return True
+                return True, winner
         else:
-            return False
+            return False, None
     
     def add_displayer(self, displayer):
         self.displayer = displayer
@@ -143,6 +145,8 @@ class Board:
                 player = 1 if player == 2 else 2
             
             self.player = player
+            # no available action record
+            self._no_avail += 1
             return self.player
         else:
             # wash actions
@@ -157,6 +161,7 @@ class Board:
                 else:
                     d_action[action] = set(reversi)
             self.action = d_action
+            self._no_avail = 0
             if self.displayer:
                 self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 self.displayer.display()
@@ -186,16 +191,20 @@ class Board:
         # empty action for correct display of pass-situation
         self.action = {}
         
-        status = self._success()
-        if status:
-            return 64
-        elif status == None:
-            return 32
-        elif status == False:
+        end, winner = self.success()
+        if end:
+            if winner != None:
+                return 64
+            else:
+                return 32
+        else:
             # for next stage change player
             self.player = 1 if player == 2 else 2
             return 0
-    
+
+    def generate_board_dict(self):
+        '''Return a dict contain "board", "player", "action", "rate"'''
+
     
 
 class Displayer:
@@ -253,9 +262,11 @@ if __name__ == '__main__':
     board = Board()
     displayer = Displayer(board)
     board.add_displayer(displayer)
-    computer = Numb_Player(1)
-    computer_fake = Numb_Player(2)
-    player = {board.black: computer.do_action, board.white: computer_fake.do_action}
+    computer = Numb_Player(2)
+    #computer_fake = Numb_Player(2)
+    mcts_player = MCTSPlayer(n_playout=2)
+    mcts_player.set_player_ind(1)
+    player = {board.black: human_do, board.white: mcts_player.do_action}
 
     # Game
     status = False
