@@ -87,7 +87,7 @@ class Board:
             search_r = re.search(pattern, pieces)
         return r
     
-    def success(self):
+    def success(self, silent=False):
         '''
         Decide who wins and modify the current pieces rate.
         if some wins, return True and the player_id. player_id is None when it is a tie
@@ -103,13 +103,13 @@ class Board:
         
         if (rate[self.black] + rate[self.white] == 64) or self._no_avail == 2:
             if rate[self.black] == rate[self.white]:
-                if self.displayer:
+                if self.displayer and silent==False:
                     self.displayer.display()
                     self.displayer.display(mode='info', message=['Both you win and both you lose.'])
                 return True, None
             else:
                 winner = self.black if rate[self.black] > rate[self.white] else self.white
-                if self.displayer:
+                if self.displayer and silent==False:
                     self.displayer.display()
                     self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner]), '比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 return True, winner
@@ -169,7 +169,7 @@ class Board:
             # no available action record
             self._no_avail += 1
             # update rate
-            self.success()
+            self.success(silent=True)
             return self.player
         else:
             # wash actions
@@ -279,13 +279,15 @@ if __name__ == '__main__':
         return board.do_action()
 
     board = Board(displayer=Displayer())
-    computer = Numb_Player(2)
-    player = {board.black: human_do, board.white: computer.do_action}
+    computer = Numb_Player(1)
+    computer_2 = Numb_Player(2)
+    player = {board.black: computer.do_action, board.white: computer_2.do_action}
 
     # Game
     status = False
     player[board.player](board)
     while(not status):
         status, winner = board.success()
+        a = input()
         if not status:
             player[board.player](board)
