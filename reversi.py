@@ -1,8 +1,7 @@
 import numpy as np
 from fake_mcts import Fake_mcts_player
-from mcts_pure import MCTSPlayer
 class Board:
-    def __init__(self) -> None:
+    def __init__(self, config: dict=None, history: bool=True, displayer=None) -> None:
         self.empty = 0
         self.black = 1
         self.white = 2
@@ -23,6 +22,9 @@ class Board:
 
         # gui
         self.displayer = None
+        if displayer:
+            self.displayer = displayer
+            self.displayer.init(self)
         # record
         self._no_avail = 0
         self._record()
@@ -208,12 +210,17 @@ class Board:
     
 
 class Displayer:
-    def __init__(self, board: Board, config: dict=None) -> None:
+    "A displayer which supports no parameters init and later init."
+    def __init__(self, board: Board=None, config: dict=None) -> None:
+        if board:
+            self.init(board, config)
+    
+    def init(self, board: Board, config: dict=None):
         self.board_object = board
-        if not config:
-            self.piece = dict([(board.empty, " "), (board.black, "●"), (board.white, "○"), (board.avail, "+")])
-        else:
+        if config:
             self.piece = dict([(board.empty, config['empty']), (board.black, config['black']), (board.white, config['white']), (board.avail, config['avail'])])
+        else:
+            self.piece = dict([(board.empty, " "), (board.black, "●"), (board.white, "○"), (board.avail, "+")])
 
     def display(self, mode='board', message=[]):
         ''' 'board', 'info', 'action' '''
@@ -259,14 +266,9 @@ if __name__ == '__main__':
     def human_do(board: Board):
         return board.do_action()
 
-    board = Board()
-    displayer = Displayer(board)
-    board.add_displayer(displayer)
+    board = Board(displayer=Displayer())
     computer = Numb_Player(2)
-    #computer_fake = Numb_Player(2)
-    mcts_player = MCTSPlayer(n_playout=2)
-    mcts_player.set_player_ind(1)
-    player = {board.black: human_do, board.white: mcts_player.do_action}
+    player = {board.black: human_do, board.white: computer.do_action}
 
     # Game
     status = False
