@@ -1,5 +1,4 @@
 import numpy as np
-from fake_mcts import Fake_mcts_player
 class Board:
     def __init__(self, config: dict=None, history: bool=True, displayer=None) -> None:
         # player init
@@ -264,25 +263,18 @@ class Displayer:
             print('Available Actions are')
             print(','.join(self.board_object.action.keys()))
 
-class Numb_Player:
-    def __init__(self, player: int) -> None:
-        self.standfor = player
-    def do_action(self, board: Board):
-        available_action = list(board.action.keys())
-        if len(available_action) != 0:
-            action_len_sort = sorted(range(len(available_action)), key=lambda i: len(board.action[available_action[i]]))
-            select = available_action[action_len_sort[-1]]
-        
-            return board.do_action(select)
-
+from mcts import MCTSPlayer
+from traditional import Greedy_Player
 if __name__ == '__main__':
 
     def human_do(board: Board):
         return board.do_action()
 
+
     board = Board(displayer=Displayer())
-    computer = Numb_Player(1)
-    player = {board.black: human_do, board.white: computer.do_action}
+    computer_2 = MCTSPlayer(c_puct=10, n_playout=100)
+    computer_1 = MCTSPlayer(n_playout=100)
+    player = {board.black: computer_1.do_action, board.white: computer_2.do_action}
 
     # Game
     status = False

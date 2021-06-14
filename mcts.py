@@ -7,7 +7,7 @@ def rollout_policy(board):
     '''
     # randomly rollout
     probs = np.random.rand(len(board.action.keys()))
-    return list(zip(board.action.keys, probs))
+    return list(zip(board.action.keys(), probs))
 
 def average_policy(board):
     '''
@@ -35,6 +35,7 @@ class TreeNode(object):
         action_priors: a list of tuples of actions and their probability
         """
         if len(action_probs) == 0:
+            # a node that can't put piece
             self._children['no_avail'] = TreeNode(self, 1.0)
         else:
             for action, prob in action_probs:
@@ -84,6 +85,7 @@ class MCTS(object):
         self._n_playout = n_playout
     
     def _playout(self, copied_board):
+        # disable displayer
         copied_board.switch(None, False)
         node = self._root
         while(True):
@@ -103,7 +105,7 @@ class MCTS(object):
 
         node.update_recursive(-leaf_value)
 
-    def _rollout(self, board, limit=1000):
+    def _rollout(self, board, limit=500):
         """Use the rollout policy to play until the end of the game,
         returning +1 if the current player wins, -1 if the opponent wins,
         and 0 if it is a tie.
@@ -125,34 +127,37 @@ class MCTS(object):
 
             board.do_action(max_action)
         else:
-            print("WARNING: rollout reached move limit")
+            #print("WARNING: rollout reached move limit")
             return 0
     
     def get_move(self, board):
-        for i in range(self._playout):
+        for i in range(self._n_playout):
             copied_board = copy.deepcopy(board)
             self._playout(copied_board)
 
-            return sorted(self._root._children.items(),
+        return sorted(self._root._children.items(),
                         key=lambda act_node: act_node[1]._n_visits)[-1]
     
     def update_with_move(self, board):
-        me = board.history[-2]['add_piece']
-        opposite = board.history[-1]['add_piece']
+        if len(board.history) > 2:
+            me = board.history[-2]['add_piece']
+            opposite = board.history[-1]['add_piece']
 
-        if me in self._root._children.keys():
-            self._root = self._root._children[me]
-            if opposite in self._root._children.keys():
-                self._root = self._root._children[opposite]
-            self._root._parent = None
-        else:
-            self._root = TreeNode(None, 1.0)
-        
+            if me in self._root._children.keys():
+                self._root = self._root._children[me]
+                if opposite in self._root._children.keys():
+                    self._root = self._root._children[opposite]
+                    self._root._parent = None
+                else:
+                    print("Node lost")
+            else:
+                print("Node lost")
 class MCTSPlayer(object):
-    def __init__(self, c_puct=5, n_playout=2000):
+    def __init__(self, c_puct=5, n_playout=100):
         self.mcts = MCTS(average_policy, c_puct, n_playout)
 
     def do_action(self, board):
         self.mcts.update_with_move(board)
-        move = self.mcts.get_move(board)
-        return move
+        move, node = self.mcts.get_move(board)
+        #print(move)
+        board.do_action(move)
