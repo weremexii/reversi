@@ -36,6 +36,8 @@ class Board:
         self.next_stage()
 
     def _record(self, add_piece: str=None):
+        if add_piece == None:
+            add_piece == 'no_avail'
         # Pay attention to mutable objects
         if isinstance(self.history, list):
             self.history.append(dict(
@@ -155,6 +157,9 @@ class Board:
 
         # make a decision about next player
         if len(origin_action) == 0:
+            self._record()
+            # no available action record
+            self._no_avail += 1
             if self.displayer:
                 self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 self.displayer.display()
@@ -165,9 +170,6 @@ class Board:
                 player = 1 if player == 2 else 2
             # take effect
             self.player = player
-            # no available action record
-            self._no_avail += 1
-            self._record()
             # update rate
             self.end(silent=True)
             return self.player

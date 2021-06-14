@@ -143,9 +143,9 @@ class MCTS(object):
             me = board.history[-2]['add_piece']
             opposite = board.history[-1]['add_piece']
 
-            if me in self._root._children.keys():
+            if self._root._children.get(me):
                 self._root = self._root._children[me]
-                if opposite in self._root._children.keys():
+                if self._root._children.get(opposite):
                     self._root = self._root._children[opposite]
                     self._root._parent = None
                 else:
