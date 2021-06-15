@@ -124,12 +124,12 @@ class MCTS(object):
                     return -1
             action_probs = rollout_policy(board)
             if len(action_probs) == 0:
-                action_probs = [('no_avail', 1.0), ]
+                action_probs = [('skip', 1.0), ]
             max_action, _ = max(action_probs, key=lambda action_prob: action_prob[1])
 
             board.do_action(max_action)
         else:
-            #print("WARNING: rollout reached move limit")
+            print("WARNING: rollout reached move limit, please check your code")
             return 0
     
     def get_move(self, board):

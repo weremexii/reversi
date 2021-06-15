@@ -34,7 +34,7 @@ class Board:
         self._record()
         self.cal_rate()
         # for next stage
-        self.next_stage()
+        self.next_stage(self.player, True)
 
     def _record(self, add_piece: str=None):
         # Pay attention to mutable objects
@@ -104,20 +104,9 @@ class Board:
         '''
         self.cal_rate()
         unempty_end = False
-        #if isinstance(self.history, list):
-        #    if len(self.history) >= 2:
-        #        if self.history[-1]['add_piece'] == 'skip' and self.history[-2]['add_piece'] == 'skip':
-        #            unempty_end = True
-        #else:
-        #    if self._no_avail == 2:
-        #        unempty_end = True
-
         if self._no_avail > 0:
-            copied_board = copy.deepcopy(self)
-            copied_board.switch(None, False)
-            if not copied_board.next_stage():
+            if not self.next_stage(self.player, False):
                 unempty_end = True
-            
 
         if (self.rate[self.black] + self.rate[self.white] == 64) or unempty_end == True:
             if self.rate[self.black] == self.rate[self.white]:
@@ -128,7 +117,7 @@ class Board:
             else:
                 winner = self.black if self.rate[self.black] > self.rate[self.white] else self.white
                 if self.displayer and silent==False:
-                    self.displayer.display()
+                    #self.displayer.display()
                     self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner]), '比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 return True, winner
         else:
@@ -144,8 +133,7 @@ class Board:
             self.history = None
             
 
-    def next_stage(self):
-        player = self.player
+    def next_stage(self, player: int, modify: bool):
         origin_action = []
         board = self.board
         # for xie
@@ -174,21 +162,11 @@ class Board:
 
         # make a decision about next player
         if len(origin_action) == 0:
-            self._record(add_piece='skip')
-            self._no_avail += 1
-            if self.displayer:
-                self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
-                self.displayer.display()
-                # change player
-                player = 1 if player == 2 else 2
-                self.displayer.display(mode='info', message=[r'No available action, pass to', self.name[player]])
-            else:
-                player = 1 if player == 2 else 2
-            # take effect
-            self.player = player
+            if modify:
+                self._record(add_piece='skip')
+                self._no_avail += 1
             return False
         else:
-            self._no_avail = 0
             # wash actions
             # str_position: set of reversi positions
             d_action = {}
@@ -200,10 +178,9 @@ class Board:
                     d_action[action].update(reversi)
                 else:
                     d_action[action] = set(reversi)
-            self.action = d_action
-            if self.displayer:
-                self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
-                self.displayer.display()
+            if modify:
+                self._no_avail = 0
+                self.action = d_action
             return True
 
     def do_action(self, str_action: str=None):
@@ -215,28 +192,39 @@ class Board:
                 if self.displayer:
                     self.displayer.display(mode='info', message=['Invalid action'])
                 str_action = '({}, {})'.format(*(input().split()))
-        if len(self.action.keys()) == 0:
-            return
+        if str_action == 'skip':
+            pass
+        else:
         # fetch data
-        player = self.player
-        board = self.board
-        reversi = self.action[str_action]
-        # reversi
-        for position in reversi:
-            x, y = position
+            player = self.player
+            board = self.board
+            reversi = self.action[str_action]
+            # reversi
+            for position in reversi:
+                x, y = position
+                board[x][y] = player
+            # put piece
+            x, y = eval(str_action)
             board[x][y] = player
-        # put piece
-        x, y = eval(str_action)
-        board[x][y] = player
-        self._record(add_piece=str_action)
+            self._record(add_piece=str_action)
+        
         # empty action for correct display of pass-situation
         self.action = {}
         
         # for next stage change player
         self.player = 1 if player == 2 else 2
-        self.next_stage()
+        r = self.next_stage(self.player, modify=True)
+        if self.displayer:
+            if not r:
+                end, winner = self.end(silent=True)
+                if not end:
+                    self.displayer.display(mode='info', message=[r'No available action, pass to', self.name[player]])
+                else:
+                    self.displayer.display()
+            else:
+                self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
+                self.displayer.display()
 
-    
 
 class Displayer:
     "A displayer which supports no parameters init and later init."
@@ -279,7 +267,7 @@ class Displayer:
             print('Available Actions are')
             print(','.join(self.board_object.action.keys()))
 
-from mcts import MCTSPlayer
+from mcts import MCTSPlayer, TreeNode
 from traditional import Greedy_Player
 if __name__ == '__main__':
 
