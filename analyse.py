@@ -7,8 +7,8 @@ def game(display: bool):
         board = Board(displayer=Displayer())
     else:
         board = Board()
-    computer_2 = MCTSPlayer(c_puct=10, n_playout=10)
-    computer_1 = MCTSPlayer(n_playout=20)
+    computer_2 = MCTSPlayer(c_puct=10, n_playout=5)
+    computer_1 = MCTSPlayer(n_playout=5)
     player = {board.black: computer_1.do_action, board.white: computer_2.do_action}
     # Game
     status = False

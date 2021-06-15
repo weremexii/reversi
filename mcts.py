@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 
+
 def rollout_policy(board):
     '''
     Return a list contain action and their random prob
@@ -83,6 +84,7 @@ class MCTS(object):
         self._policy = policy_value_fn
         self._c_puct = c_puct
         self._n_playout = n_playout
+        self._move_history = []
     
     def _playout(self, copied_board):
         # disable displayer
@@ -154,6 +156,14 @@ class MCTS(object):
             else:
                 print("Node lost")
                 raise Exception
+    
+    def update_with_one_move(self, move):
+        if self._root._children.get(move):
+            self._root = self._root._children[move]
+        else:
+            print("Node lost")
+            raise Exception
+
 
         
 class MCTSPlayer(object):
@@ -161,7 +171,11 @@ class MCTSPlayer(object):
         self.mcts = MCTS(average_policy, c_puct, n_playout)
 
     def do_action(self, board):
-        self.mcts.update_with_move(board)
+        if not self.mcts._root.is_leaf():
+            last_move = board.history[-1]['add_piece']
+            self.mcts.update_with_one_move(last_move)
+        #self.mcts.update_with_move(board)
         move, node = self.mcts.get_move(board)
+        self.mcts.update_with_one_move(move)
         #print(move)
         board.do_action(move)

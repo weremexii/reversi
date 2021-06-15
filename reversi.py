@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 class Board:
     def __init__(self, config: dict=None, history: bool=True, displayer=None) -> None:
@@ -31,7 +32,7 @@ class Board:
         # empty opening
         self._no_avail = 0
         self._record()
-        self.end()
+        self.cal_rate()
         # for next stage
         self.next_stage()
 
@@ -86,12 +87,7 @@ class Board:
             search_r = re.search(pattern, pieces)
         return r
     
-    def end(self, silent=False):
-        '''
-        Decide who wins and modify the current pieces rate.
-        if some wins, return True and the player_id. player_id is None when it is a tie
-        else return False and None
-        '''
+    def cal_rate(self):
         self.rate = {self.black: 0, self.white: 0}
         rate = self.rate
         board = self.board
@@ -100,23 +96,37 @@ class Board:
                 if board[x][y] != self.empty:
                     rate[board[x][y]] += 1
 
+    def end(self, silent=False):
+        '''
+        Decide who wins and modify the current pieces rate.
+        if some wins, return True and the player_id. player_id is None when it is a tie
+        else return False and None
+        '''
+        self.cal_rate()
         unempty_end = False
-        if isinstance(self.history, list):
-            if len(self.history) >= 2:
-                if self.history[-1]['add_piece'] == 'skip' and self.history[-2]['add_piece'] == 'skip':
-                    unempty_end = True
-        else:
-            if self._no_avail == 2:
-                unempty_end = True
+        #if isinstance(self.history, list):
+        #    if len(self.history) >= 2:
+        #        if self.history[-1]['add_piece'] == 'skip' and self.history[-2]['add_piece'] == 'skip':
+        #            unempty_end = True
+        #else:
+        #    if self._no_avail == 2:
+        #        unempty_end = True
 
-        if (rate[self.black] + rate[self.white] == 64) or unempty_end == True:
-            if rate[self.black] == rate[self.white]:
+        if self._no_avail > 0:
+            copied_board = copy.deepcopy(self)
+            copied_board.switch(None, False)
+            if not copied_board.next_stage():
+                unempty_end = True
+            
+
+        if (self.rate[self.black] + self.rate[self.white] == 64) or unempty_end == True:
+            if self.rate[self.black] == self.rate[self.white]:
                 if self.displayer and silent==False:
                     self.displayer.display()
                     self.displayer.display(mode='info', message=['Both you win and both you lose.'])
                 return True, None
             else:
-                winner = self.black if rate[self.black] > rate[self.white] else self.white
+                winner = self.black if self.rate[self.black] > self.rate[self.white] else self.white
                 if self.displayer and silent==False:
                     self.displayer.display()
                     self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner]), '比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
@@ -176,9 +186,7 @@ class Board:
                 player = 1 if player == 2 else 2
             # take effect
             self.player = player
-            # update rate
-            self.end(silent=True)
-            return self.player
+            return False
         else:
             self._no_avail = 0
             # wash actions
@@ -196,7 +204,7 @@ class Board:
             if self.displayer:
                 self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 self.displayer.display()
-            return self.player
+            return True
 
     def do_action(self, str_action: str=None):
         # Input
@@ -280,8 +288,8 @@ if __name__ == '__main__':
 
 
     board = Board(displayer=Displayer())
-    computer_2 = MCTSPlayer(c_puct=10, n_playout=10)
-    computer_1 = MCTSPlayer(n_playout=10)
+    computer_2 = MCTSPlayer(c_puct=10, n_playout=5)
+    computer_1 = MCTSPlayer(n_playout=5)
     player = {board.black: computer_1.do_action, board.white: computer_2.do_action}
 
     # Game
