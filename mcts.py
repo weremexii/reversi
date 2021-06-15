@@ -36,7 +36,7 @@ class TreeNode(object):
         """
         if len(action_probs) == 0:
             # a node that can't put piece
-            self._children['no_avail'] = TreeNode(self, 1.0)
+            self._children['skip'] = TreeNode(self, 1.0)
         else:
             for action, prob in action_probs:
                 if action not in self._children.keys():
@@ -150,8 +150,12 @@ class MCTS(object):
                     self._root._parent = None
                 else:
                     print("Node lost")
+                    raise Exception
             else:
                 print("Node lost")
+                raise Exception
+
+        
 class MCTSPlayer(object):
     def __init__(self, c_puct=5, n_playout=100):
         self.mcts = MCTS(average_policy, c_puct, n_playout)

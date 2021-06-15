@@ -36,8 +36,6 @@ class Board:
         self.next_stage()
 
     def _record(self, add_piece: str=None):
-        if add_piece == None:
-            add_piece == 'no_avail'
         # Pay attention to mutable objects
         if isinstance(self.history, list):
             self.history.append(dict(
@@ -101,8 +99,17 @@ class Board:
             for y in range(8):
                 if board[x][y] != self.empty:
                     rate[board[x][y]] += 1
-        
-        if (rate[self.black] + rate[self.white] == 64) or self._no_avail == 2:
+
+        unempty_end = False
+        if isinstance(self.history, list):
+            if len(self.history) >= 2:
+                if self.history[-1]['add_piece'] == 'skip' and self.history[-2]['add_piece'] == 'skip':
+                    unempty_end = True
+        else:
+            if self._no_avail == 2:
+                unempty_end = True
+
+        if (rate[self.black] + rate[self.white] == 64) or unempty_end == True:
             if rate[self.black] == rate[self.white]:
                 if self.displayer and silent==False:
                     self.displayer.display()
@@ -157,8 +164,7 @@ class Board:
 
         # make a decision about next player
         if len(origin_action) == 0:
-            self._record()
-            # no available action record
+            self._record(add_piece='skip')
             self._no_avail += 1
             if self.displayer:
                 self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
@@ -174,6 +180,7 @@ class Board:
             self.end(silent=True)
             return self.player
         else:
+            self._no_avail = 0
             # wash actions
             # str_position: set of reversi positions
             d_action = {}
@@ -186,7 +193,6 @@ class Board:
                 else:
                     d_action[action] = set(reversi)
             self.action = d_action
-            self._no_avail = 0
             if self.displayer:
                 self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 self.displayer.display()
@@ -274,8 +280,8 @@ if __name__ == '__main__':
 
 
     board = Board(displayer=Displayer())
-    computer_2 = MCTSPlayer(c_puct=10, n_playout=100)
-    computer_1 = MCTSPlayer(n_playout=100)
+    computer_2 = MCTSPlayer(c_puct=10, n_playout=10)
+    computer_1 = MCTSPlayer(n_playout=10)
     player = {board.black: computer_1.do_action, board.white: computer_2.do_action}
 
     # Game
