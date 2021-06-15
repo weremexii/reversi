@@ -103,12 +103,12 @@ class Board:
         else return False and None
         '''
         self.cal_rate()
-        unempty_end = False
+        unfull_end = False
         if self._no_avail > 0:
             if not self.next_stage(self.player, False):
-                unempty_end = True
+                unfull_end = True
 
-        if (self.rate[self.black] + self.rate[self.white] == 64) or unempty_end == True:
+        if (self.rate[self.black] + self.rate[self.white] == 64) or unfull_end == True:
             if self.rate[self.black] == self.rate[self.white]:
                 if self.displayer and silent==False:
                     self.displayer.display()
