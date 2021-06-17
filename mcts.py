@@ -81,12 +81,16 @@ class TreeNode(object):
 class MCTS(object):
     def __init__(self, policy_value_fn, c_puct=5, n_playout=10000):
         self._root = TreeNode(None, 1.0)
+        self._keep_root = copy.copy(self._root)
         self._policy = policy_value_fn
         self._c_puct = c_puct
         self._n_playout = n_playout
         self._move_history = []
+
+    def reset(self):
+        self._root = copy.copy(self._keep_root)
     
-    def _playout(self, copied_board):
+    def playout(self, copied_board):
         # disable displayer
         copied_board.switch(None, False)
         node = self._root
@@ -135,10 +139,11 @@ class MCTS(object):
     def get_move(self, board):
         for i in range(self._n_playout):
             copied_board = copy.deepcopy(board)
-            self._playout(copied_board)
+            self.playout(copied_board)
 
-        return sorted(self._root._children.items(),
+        action, node = sorted(self._root._children.items(),
                         key=lambda act_node: act_node[1]._n_visits)[-1]
+        return action, node._Q
     
     def update_with_move(self, board):
         if len(board.history) > 2:
@@ -172,10 +177,15 @@ class MCTSPlayer(object):
 
     def do_action(self, board):
         if not self.mcts._root.is_leaf():
-            last_move = board.history[-1]['add_piece']
-            self.mcts.update_with_one_move(last_move)
+            # black begin
+            if len(board.history) == 1:
+                pass
+            else:
+                last_move = board.history[-1]['add_piece']
+                self.mcts.update_with_one_move(last_move)
         #self.mcts.update_with_move(board)
-        move, node = self.mcts.get_move(board)
+        move, value = self.mcts.get_move(board)
         self.mcts.update_with_one_move(move)
         #print(move)
         board.do_action(move)
+        #print(value)
