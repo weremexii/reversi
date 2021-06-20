@@ -11,36 +11,43 @@ class Board:
         self.black = 1
         self.white = 2
         self.avail = 3 # a status won't be stored
-        self.name = {self.white: 'white', self.black: 'black', self.empty: 'empty', self.avail: 'avail'}
+        if config == None:
+            self.name = {self.white: 'White', self.black: 'Black', self.empty: 'empty', self.avail: 'avail'}
+        else:
+            self.name = {self.white: config['white'], self.black: config['black'], self.empty: 'empty', self.avail: 'avail'}
         # game init
         self.board = np.array([
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 2, 1, 0, 0, 0],
-       [0, 0, 0, 1, 2, 0, 0, 0],
+       [0, 0, 0, self.white, self.black, 0, 0, 0],
+       [0, 0, 0, self.black, self.white, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0]])
         self.player = self.black
         self.action = {}
         self.history = None
+        self.predictor = None
         if history:
             self.history = []
             # prediction
             self.predictor = MCTS_Preditor(random_rollout_policy, 10, 5)
 
+        # empty opening
+        self._no_avail = 0
+        self._record()
+        self.cal_rate()
+
+        # for next stage
+        self.next_stage(self.player, True)
         # gui
         self.displayer = None
         if displayer:
             self.displayer = displayer
             self.displayer.init(self)
-        # empty opening
-        self._no_avail = 0
-        self._record()
-        self.cal_rate()
-        # for next stage
-        self.next_stage(self.player, True)
+            self.displayer.display(mode='rate')
+            self.displayer.display()
 
     def _record(self, add_piece: str=None):
         # Pay attention to mutable objects
@@ -74,7 +81,9 @@ class Board:
         line: a list of 2-tuples containing positions and piece
         '''
         pieces = ''.join((map(lambda item: str(item[1]), line)))
-        pattern = r'12+0' if player == 1 else r'21+0'
+        pattern_for_black = '{}{}+0'.format(self.black, self.white)
+        pattern_for_white = '{}{}+0'.format(self.white, self.black)
+        pattern = pattern_for_black if player == self.black else pattern_for_white
         r = []
         import re
         search_r = re.search(pattern, pieces)
@@ -104,9 +113,7 @@ class Board:
 
     def end(self, silent=False):
         '''
-        Decide who wins and modify the current pieces rate.
-        if some wins, return True and the player_id. player_id is None when it is a tie
-        else return False and None
+        
         '''
         self.cal_rate()
         unfull_end = False
@@ -124,7 +131,7 @@ class Board:
                 winner = self.black if self.rate[self.black] > self.rate[self.white] else self.white
                 if self.displayer and silent==False:
                     #self.displayer.display()
-                    self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner]), '比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
+                    self.displayer.display(mode='info', message=['Winner is {}'.format(self.name[winner]), 'Rate：Black {}:{} White'.format(self.rate[self.black], self.rate[self.white])])
                 return True, winner
         else:
             return False, None
@@ -227,9 +234,9 @@ class Board:
         self.action = {}
         
         # for next stage change player
-        self.player = 1 if player == 2 else 2
+        self.player = self.black if player == self.white else self.white
         r = self.next_stage(self.player, modify=True)
-
+        end, winner = self.end(silent=True)
         # After modify real board data can mcts work fine
         if self.history != None:
             for i in range(self.predictor._n_playout):
@@ -237,21 +244,29 @@ class Board:
                 self.predictor.playout(copied_board)
         
         if self.displayer:
-            if not r:
-                end, winner = self.end(silent=True)
+            if not r: 
                 if not end:
                     self.displayer.display(mode='info', message=[r'No available action, pass to', self.name[player]])
                 else:
                     self.displayer.display()
             else:
                 self.displayer.display(mode='win_rate', message=[self.history[-1]['player'], (self.predictor.get_root_value()+1)/2])
-                self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
+                self.displayer.display(mode='info', message=['\n'])
+                self.displayer.display(mode='rate')
                 self.displayer.display()
 
 
 class Displayer:
-    "A displayer which supports no parameters init and later init."
+    '''
+    A displayer which supports no parameters init and explicit init. Before using either must be called.
+    
+    param: board
+        A Board object
+    param: config
+        A dict which contains key 'black', 'white', 'empty' and 'avail' to customize your reversi board
+    '''
     def __init__(self, board: Board=None, config: dict=None) -> None:
+        self.piece = dict([(board.empty, " "), (board.black, "●"), (board.white, "○"), (board.avail, "+")])
         if board:
             self.init(board, config)
     
@@ -259,8 +274,6 @@ class Displayer:
         self.board_object = board
         if config:
             self.piece = dict([(board.empty, config['empty']), (board.black, config['black']), (board.white, config['white']), (board.avail, config['avail'])])
-        else:
-            self.piece = dict([(board.empty, " "), (board.black, "●"), (board.white, "○"), (board.avail, "+")])
 
     def display(self, mode='board', message=[]):
         ''' 'board', 'info', 'action' '''
@@ -289,6 +302,9 @@ class Displayer:
         if mode == 'action':
             print('Available Actions are')
             print(','.join(self.board_object.action.keys()))
+        if mode == 'rate':
+            print('Now the turn is {}'.format(self.piece[self.board_object.player]))
+            print('Rate：{} {}:{} {}'.format(self.piece[self.board_object.black], self.board_object.rate[self.board_object.black], self.board_object.rate[self.board_object.white], self.piece[self.board_object.white]))
         if mode == 'win_rate':
             player, rate = message
-            print('{}'.format(self.piece[player])+'的胜率是'+'{:.2%}'.format(rate))
+            print('{}'.format(self.piece[player])+"\'s winning rate is "+'{:.2%}'.format(rate))

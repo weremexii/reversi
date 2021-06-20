@@ -1,6 +1,4 @@
 class Greedy_Player:
-    def __init__(self, player: int) -> None:
-        self.standfor = player
     def do_action(self, board):
         available_action = list(board.action.keys())
         if len(available_action) != 0:
