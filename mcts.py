@@ -142,23 +142,6 @@ class MCTS(object):
                         key=lambda act_node: act_node[1]._n_visits)[-1]
         return action, node._Q
     
-    def update_with_move(self, board):
-        if len(board.history) > 2:
-            me = board.history[-2]['add_piece']
-            opposite = board.history[-1]['add_piece']
-
-            if self._root._children.get(me):
-                self._root = self._root._children[me]
-                if self._root._children.get(opposite):
-                    self._root = self._root._children[opposite]
-                    self._root._parent = None
-                else:
-                    print("Node lost")
-                    raise Exception
-            else:
-                print("Node lost")
-                raise Exception
-    
     def update_with_one_move(self, move):
         if self._root._children.get(move):
             self._root = self._root._children[move]
@@ -180,7 +163,6 @@ class MCTSPlayer(object):
             else:
                 last_move = board.history[-1]['add_piece']
                 self.mcts.update_with_one_move(last_move)
-        #self.mcts.update_with_move(board)
         move, value = self.mcts.get_move(board)
         self.mcts.update_with_one_move(move)
         #print(move)

@@ -1,4 +1,9 @@
 import numpy as np
+from copy import deepcopy
+from mcts import MCTS, random_rollout_policy
+class MCTS_Preditor(MCTS):
+    def get_root_value(self):
+        return self._root._Q
 class Board:
     def __init__(self, config: dict=None, history: bool=True, displayer=None) -> None:
         # player init
@@ -22,6 +27,8 @@ class Board:
         self.history = None
         if history:
             self.history = []
+            # prediction
+            self.predictor = MCTS_Preditor(random_rollout_policy, 10, 5)
 
         # gui
         self.displayer = None
@@ -191,10 +198,18 @@ class Board:
                 if self.displayer:
                     self.displayer.display(mode='info', message=['Invalid action'])
                 str_action = '({}, {})'.format(*(input().split()))
+        # predition's action/move
+        if self.history != None:
+            if len(self.history) == 1: # game just begin, a init status is in it
+                for i in range(self.predictor._n_playout):
+                    copied_board = deepcopy(self)
+                    self.predictor.playout(copied_board)
+            self.predictor.update_with_one_move(str_action)
+        # real board's action
         if str_action == 'skip':
             pass
         else:
-        # fetch data
+            # fetch data
             player = self.player
             board = self.board
             reversi = self.action[str_action]
@@ -206,13 +221,20 @@ class Board:
             x, y = eval(str_action)
             board[x][y] = player
             self._record(add_piece=str_action)
-        
+            
         # empty action for correct display of pass-situation
         self.action = {}
         
         # for next stage change player
         self.player = 1 if player == 2 else 2
         r = self.next_stage(self.player, modify=True)
+
+        # After modify real board data can mcts work fine
+        if self.history != None:
+            for i in range(self.predictor._n_playout):
+                copied_board = deepcopy(self)
+                self.predictor.playout(copied_board)
+        
         if self.displayer:
             if not r:
                 end, winner = self.end(silent=True)
@@ -221,6 +243,7 @@ class Board:
                 else:
                     self.displayer.display()
             else:
+                self.displayer.display(mode='win_rate', message=[self.history[-1]['player'], (self.predictor.get_root_value()+1)/2])
                 self.displayer.display(mode='info', message=['现在是{}'.format(self.displayer.piece[self.player]), '当前比分：黑{}:{}白'.format(self.rate[self.black], self.rate[self.white])])
                 self.displayer.display()
 
@@ -265,3 +288,6 @@ class Displayer:
         if mode == 'action':
             print('Available Actions are')
             print(','.join(self.board_object.action.keys()))
+        if mode == 'win_rate':
+            player, rate = message
+            print('{}'.format(self.piece[player])+'的胜率是'+'{:.2%}'.format(rate))

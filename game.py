@@ -10,8 +10,8 @@ if __name__ == '__main__':
 
 
     board = Board(displayer=Displayer())
-    computer_1 = MCTS_Cache_Player(r'./cache', 'mcts', 1)
-    computer_2 = MCTSPlayer(c_puct=5, n_playout=40)
+    computer_2 = Greedy_Player(2)
+    computer_1 = MCTSPlayer(c_puct=1, n_playout=70)
     player = {board.black: computer_1.do_action, board.white: computer_2.do_action}
 
     # Game
@@ -22,4 +22,4 @@ if __name__ == '__main__':
         if not status:
             player[board.player](board)
     
-    computer_1.store()
+    #computer_1.store()
