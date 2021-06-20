@@ -2,3 +2,5 @@
 *.old.*
 *.test.*
 __pycache__
+cache
+.DS_Store

@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 class Board:
     def __init__(self, config: dict=None, history: bool=True, displayer=None) -> None:
@@ -266,24 +265,3 @@ class Displayer:
         if mode == 'action':
             print('Available Actions are')
             print(','.join(self.board_object.action.keys()))
-
-from mcts import MCTSPlayer, TreeNode
-from traditional import Greedy_Player
-if __name__ == '__main__':
-
-    def human_do(board: Board):
-        return board.do_action()
-
-
-    board = Board(displayer=Displayer())
-    computer_2 = MCTSPlayer(c_puct=10, n_playout=5)
-    computer_1 = MCTSPlayer(n_playout=5)
-    player = {board.black: computer_1.do_action, board.white: computer_2.do_action}
-
-    # Game
-    status = False
-    player[board.player](board)
-    while(not status):
-        status, winner = board.end()
-        if not status:
-            player[board.player](board)

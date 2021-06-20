@@ -2,19 +2,12 @@ import numpy as np
 import copy
 
 
-def rollout_policy(board):
+def random_rollout_policy(board):
     '''
     Return a list contain action and their random prob
     '''
     # randomly rollout
     probs = np.random.rand(len(board.action.keys()))
-    return list(zip(board.action.keys(), probs))
-
-def average_policy(board):
-    '''
-    Return a list contain action and an average prob
-    '''
-    probs = np.ones(len(board.action.keys()))/len(board.action.keys())
     return list(zip(board.action.keys(), probs))
 
 class TreeNode(object):
@@ -46,7 +39,7 @@ class TreeNode(object):
     def select(self, c_puct):
         return max(self._children.items(),
                    key=lambda act_node: act_node[1].get_value(c_puct))
-    
+
     def update(self, leaf_value):
         '''
         leaf_value is 1, -1 or 0
@@ -55,7 +48,7 @@ class TreeNode(object):
         self._n_visits += 1
         # Update Q, a running average of values for all visits.
         self._Q += 1.0*(leaf_value - self._Q) / self._n_visits
-    
+
     def update_recursive(self, leaf_value):
         """Like a call to update(), but applied recursively for all ancestors.
         """
@@ -79,17 +72,21 @@ class TreeNode(object):
         return self._parent is None
 
 class MCTS(object):
-    def __init__(self, policy_value_fn, c_puct=5, n_playout=10000):
+    @staticmethod
+    def average_policy(board):
+        '''
+        Return a list contain action and an average prob
+        '''
+        probs = np.ones(len(board.action.keys()))/len(board.action.keys())
+        return list(zip(board.action.keys(), probs))
+
+    def __init__(self, rollout_value_fn, n_playout=10000, c_puct=5):
         self._root = TreeNode(None, 1.0)
-        self._keep_root = copy.copy(self._root)
-        self._policy = policy_value_fn
+        self._rollout_policy = rollout_value_fn
         self._c_puct = c_puct
         self._n_playout = n_playout
         self._move_history = []
 
-    def reset(self):
-        self._root = copy.copy(self._keep_root)
-    
     def playout(self, copied_board):
         # disable displayer
         copied_board.switch(None, False)
@@ -101,7 +98,7 @@ class MCTS(object):
             copied_board.do_action(action)
 
         # here we get a leaf
-        action_probs = self._policy(copied_board)
+        action_probs = self.average_policy(copied_board)
         end, winner = copied_board.end(silent=True)
         if not end:
             node.expand(action_probs)
@@ -126,7 +123,7 @@ class MCTS(object):
                     return 0
                 else:
                     return -1
-            action_probs = rollout_policy(board)
+            action_probs = self._rollout_policy(board)
             if len(action_probs) == 0:
                 action_probs = [('skip', 1.0), ]
             max_action, _ = max(action_probs, key=lambda action_prob: action_prob[1])
@@ -173,7 +170,7 @@ class MCTS(object):
         
 class MCTSPlayer(object):
     def __init__(self, c_puct=5, n_playout=100):
-        self.mcts = MCTS(average_policy, c_puct, n_playout)
+        self.mcts = MCTS(random_rollout_policy, c_puct, n_playout)
 
     def do_action(self, board):
         if not self.mcts._root.is_leaf():
