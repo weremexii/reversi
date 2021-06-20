@@ -137,6 +137,7 @@ class Board:
         self.displayer = displayer
         if not history:
             self.history = None
+            self.predictor = None
             
 
     def next_stage(self, player: int, modify: bool):
