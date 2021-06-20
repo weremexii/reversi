@@ -15,29 +15,35 @@ class TreeNode(object):
     prior probability P, and its visit-count-adjusted prior score u.
     """
 
-    def __init__(self, parent, prob) -> None:
+    def __init__(self, parent, prob, player) -> None:
         self._parent = parent
         self._children = {} # a map from action to TreeNode
         self._n_visits = 0
         self._Q = 0
         self._u = 0
         self._P = prob
+        self.player = player
 
     def expand(self, action_probs):
         """
         Expand tree by creating new children.
         action_priors: a list of tuples of actions and their probability
         """
+        player = 1 if self.player == 2 else 2
         if len(action_probs) == 0:
             # a node that can't put piece
-            self._children['skip'] = TreeNode(self, 1.0)
+            self._children['skip'] = TreeNode(self, 1.0, player)
         else:
             for action, prob in action_probs:
                 if action not in self._children.keys():
-                    self._children[action] = TreeNode(self, prob)
+                    self._children[action] = TreeNode(self, prob, player)
     
-    def select(self, c_puct):
-        return max(self._children.items(),
+    def select(self, c_puct, tree_player):
+        if tree_player == self.player:
+            return max(self._children.items(),
+                   key=lambda act_node: act_node[1].get_value(c_puct))
+        else:
+            return max(self._children.items(),
                    key=lambda act_node: act_node[1].get_value(c_puct))
 
     def update(self, leaf_value):
@@ -80,8 +86,10 @@ class MCTS(object):
         probs = np.ones(len(board.action.keys()))/len(board.action.keys())
         return list(zip(board.action.keys(), probs))
 
-    def __init__(self, rollout_value_fn, n_playout=10000, c_puct=5):
-        self._root = TreeNode(None, 1.0)
+    def __init__(self, rollout_value_fn, player, n_playout=10000, c_puct=5):
+        self.player = player
+        init_node_player = 1 if player == 2 else 2
+        self._root = TreeNode(None, 1.0, init_node_player)
         self._rollout_policy = rollout_value_fn
         self._c_puct = c_puct
         self._n_playout = n_playout
@@ -94,7 +102,7 @@ class MCTS(object):
         while(True):
             if node.is_leaf():
                 break
-            action, node = node.select(self._c_puct)
+            action, node = node.select(self._c_puct, self.player)
             copied_board.do_action(action)
 
         # here we get a leaf
