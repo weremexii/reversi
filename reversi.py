@@ -10,7 +10,7 @@ class Board:
         self.empty = 0
         self.black = 1
         self.white = 2
-        self.avail = 3 # a status won't be stored
+        self.avail = 3
         if config == None:
             self.name = {self.white: 'White', self.black: 'Black', self.empty: 'empty', self.avail: 'avail'}
         else:
@@ -112,9 +112,6 @@ class Board:
                     rate[board[x][y]] += 1
 
     def end(self, silent=False):
-        '''
-        
-        '''
         self.cal_rate()
         unfull_end = False
         if self._no_avail > 0:
@@ -145,12 +142,11 @@ class Board:
         if not history:
             self.history = None
             self.predictor = None
-            
 
     def next_stage(self, player: int, modify: bool):
         origin_action = []
         board = self.board
-        # for xie
+
         for i in range(15):
             x, y = (0 if i <= 7 else i - 7, 7-i if i <=7 else 0) #03
             origin_action.extend(self._available_action(self._position_generator((x, y), (1, 1)), player))
@@ -163,8 +159,6 @@ class Board:
         for i in range(15):
             x, y = (i if i <= 7 else 7, 0 if i <=7 else i-7) #21
             origin_action.extend(self._available_action(self._position_generator((x, y), (-1, 1)), player))
-
-        # for zheng
         for i in range(8):
             origin_action.extend(self._available_action([((i, j), board[(i, j)]) for j in range(8)], player))
         for i in range(8):

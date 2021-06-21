@@ -3,17 +3,11 @@ import copy
 
 
 def random_rollout_policy(board):
-    '''
-    Return a list contain action and their random prob
-    '''
     # randomly rollout
     probs = np.random.rand(len(board.action.keys()))
     return list(zip(board.action.keys(), probs))
 
 class TreeNode(object):
-    """A node in the MCTS tree. Each node keeps track of its own value Q,
-    prior probability P, and its visit-count-adjusted prior score u.
-    """
 
     def __init__(self, parent, prob) -> None:
         self._parent = parent
@@ -50,8 +44,6 @@ class TreeNode(object):
         self._Q += 1.0*(leaf_value - self._Q) / self._n_visits
 
     def update_recursive(self, leaf_value):
-        """Like a call to update(), but applied recursively for all ancestors.
-        """
         # If it is not root, this node's parent should be updated first.
         if self._parent:
             self._parent.update_recursive(-leaf_value)
@@ -64,8 +56,6 @@ class TreeNode(object):
         return self._Q + self._u
 
     def is_leaf(self):
-        """Check if leaf node (i.e. no nodes below this have been expanded).
-        """
         return self._children == {}
 
     def is_root(self):
@@ -74,9 +64,6 @@ class TreeNode(object):
 class MCTS(object):
     @staticmethod
     def average_policy(board):
-        '''
-        Return a list contain action and an average prob
-        '''
         probs = np.ones(len(board.action.keys()))/len(board.action.keys())
         return list(zip(board.action.keys(), probs))
 
@@ -109,10 +96,6 @@ class MCTS(object):
         node.update_recursive(-leaf_value)
 
     def _rollout(self, board, limit=500):
-        """Use the rollout policy to play until the end of the game,
-        returning +1 if the current player wins, -1 if the opponent wins,
-        and 0 if it is a tie.
-        """
         player = board.player
         for i in range(limit):
             end, winner = board.end()
@@ -148,9 +131,7 @@ class MCTS(object):
         else:
             print("Node lost")
             raise Exception
-
-
-        
+     
 class MCTSPlayer(object):
     def __init__(self, c_puct=5, n_playout=100):
         self.mcts = MCTS(random_rollout_policy, c_puct, n_playout)

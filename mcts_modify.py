@@ -1,10 +1,6 @@
 import numpy as np
 from mcts import MCTS, TreeNode, MCTSPlayer, random_rollout_policy
 def weight_rollout_policy(board):
-    '''
-    Return a list contain action and their random prob
-    '''
-    # randomly rollout
     weight_matrix = np.array([[100,-25, 20, 10 ,10 ,20,-25,100],
                                 [-25, -60,  -3,  1, 1, -3, -60,  -25],
                                 [20,  -3, 3, 1, 1,  3,  -3,  20],
